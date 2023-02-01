@@ -15,6 +15,7 @@
 		270453A12987A38600D54F62 /* PhotographyLessonsUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270453A02987A38600D54F62 /* PhotographyLessonsUITestsLaunchTests.swift */; };
 		270453AE2987A3C200D54F62 /* LessonsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270453AD2987A3C200D54F62 /* LessonsListView.swift */; };
 		270453B92988299300D54F62 /* LessonDetailsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 270453B82988299300D54F62 /* LessonDetailsViewController.swift */; };
+		273112B12989A69C0011485A /* LessonListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273112B02989A69C0011485A /* LessonListViewModel.swift */; };
 		2761C6B22988E03400DE4D16 /* LessonsResponse.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2761C6B12988E03400DE4D16 /* LessonsResponse.swift */; };
 		2761C6B52988E07D00DE4D16 /* LessonRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2761C6B42988E07D00DE4D16 /* LessonRow.swift */; };
 		2761C6BA2988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2761C6B92988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift */; };
@@ -49,6 +50,7 @@
 		270453A02987A38600D54F62 /* PhotographyLessonsUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotographyLessonsUITestsLaunchTests.swift; sourceTree = "<group>"; };
 		270453AD2987A3C200D54F62 /* LessonsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonsListView.swift; sourceTree = "<group>"; };
 		270453B82988299300D54F62 /* LessonDetailsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonDetailsViewController.swift; sourceTree = "<group>"; };
+		273112B02989A69C0011485A /* LessonListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonListViewModel.swift; sourceTree = "<group>"; };
 		2761C6B12988E03400DE4D16 /* LessonsResponse.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonsResponse.swift; sourceTree = "<group>"; };
 		2761C6B42988E07D00DE4D16 /* LessonRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonRow.swift; sourceTree = "<group>"; };
 		2761C6B92988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonDetailsViewControllerWrapper.swift; sourceTree = "<group>"; };
@@ -166,6 +168,7 @@
 			children = (
 				2761C6B32988E05800DE4D16 /* Views */,
 				270453AD2987A3C200D54F62 /* LessonsListView.swift */,
+				273112B02989A69C0011485A /* LessonListViewModel.swift */,
 			);
 			path = LessonsList;
 			sourceTree = "<group>";
@@ -311,6 +314,7 @@
 			files = (
 				270453842987A38100D54F62 /* PhotographyLessonsApp.swift in Sources */,
 				2761C6BA2988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift in Sources */,
+				273112B12989A69C0011485A /* LessonListViewModel.swift in Sources */,
 				2761C6B52988E07D00DE4D16 /* LessonRow.swift in Sources */,
 				270453AE2987A3C200D54F62 /* LessonsListView.swift in Sources */,
 				270453B92988299300D54F62 /* LessonDetailsViewController.swift in Sources */,

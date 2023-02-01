@@ -8,17 +8,24 @@
 import SwiftUI
 
 struct LessonDetailsViewControllerWrapper: UIViewControllerRepresentable {
-    private let lesson: Lesson
-
-    init(lesson: Lesson) {
-        self.lesson = lesson
-    }
-
     typealias UIViewControllerType = UIViewController
 
-    func makeUIViewController(context: UIViewControllerRepresentableContext<LessonDetailsViewControllerWrapper>) -> UIViewController {
-        return LessonDetailsViewController(lesson: lesson)
+    private let lessons: [Lesson]
+    private let currentIndex: Int
+
+    init(lessons: [Lesson], currentIndex: Int) {
+        self.lessons = lessons
+        self.currentIndex = currentIndex
     }
+
+    func makeUIViewController(context: UIViewControllerRepresentableContext<LessonDetailsViewControllerWrapper>) -> UIViewController {
+        let viewController = LessonDetailsViewController(
+            lessons: lessons,
+            currentLessonIndex: currentIndex
+        )
+        return viewController
+    }
+    
 
     func updateUIViewController(_ uiViewController: UIViewController, context: UIViewControllerRepresentableContext<LessonDetailsViewControllerWrapper>) {}
 }

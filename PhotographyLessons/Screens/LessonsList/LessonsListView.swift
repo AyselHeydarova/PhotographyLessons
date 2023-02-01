@@ -18,14 +18,7 @@ struct LessonsListView: View {
                         destination: LessonDetailsViewControllerWrapper(
                             lessons: viewModel.lessons,
                             currentIndex: index
-                        ).navigationBarItems(trailing: Button(action: {
-                            print("Right button tapped")
-                        })  {
-                            HStack {
-                                Image(systemName: "icloud.and.arrow.down")
-                                Text("Download")
-                            }
-                        })
+                        )
                     ) {
                         LessonRow(lesson: viewModel.lessons[index])
                     }

@@ -10,6 +10,13 @@ import AVKit
 import Combine
 import SwiftUI
 
+enum DownloadState {
+    case initial
+    case downloading
+    case canceled
+    case downloaded
+}
+
 class LessonDetailsViewController: UIViewController {
     private let activityIndicator = UIActivityIndicatorView(style: .large)
 
@@ -57,11 +64,12 @@ class LessonDetailsViewController: UIViewController {
         return button
     }()
     
-    var downloadTask: URLSessionDownloadTask?
-    
+    private var downloadTask: URLSessionDownloadTask?
     private var observation: NSKeyValueObservation?
+    private var downloadStatus: DownloadState = .initial
     private var lessons: [Lesson]
     private var lesson: Lesson
+    private var resumeData: Data?
     private var currentLessonIndex: Int {
         didSet {
             lesson = lessons[currentLessonIndex]
@@ -82,7 +90,7 @@ class LessonDetailsViewController: UIViewController {
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
@@ -99,6 +107,12 @@ class LessonDetailsViewController: UIViewController {
         addSubviews()
         configure()
     }
+
+    func setRightBarItem(title: String, action: Selector?) {
+        self.parent?
+            .navigationItem
+            .rightBarButtonItem = UIBarButtonItem(title: title, style: .plain, target: self, action: action)
+    }
     
     @objc func nextButtonTapped() {
         if currentLessonIndex + 1 < lessons.count {
@@ -110,6 +124,22 @@ class LessonDetailsViewController: UIViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         videoPlayer.player?.pause()
+    }
+
+    func handleDownloadStatus(_ status: DownloadState) {
+        switch status {
+        case .initial:
+            self.progressView.isHidden = true
+        case .downloading:
+            self.progressView.isHidden = false
+            setRightBarItem(title: "Cancel", action:  #selector(cancelDownload))
+        case .canceled:
+            self.progressView.isHidden = false
+            setRightBarItem(title: "Resume", action: #selector(resumeDownload))
+        case .downloaded:
+            self.progressView.isHidden = true
+            setRightBarItem(title: "Downloaded", action: nil)
+        }
     }
     
     private func addSubviews() {
@@ -137,7 +167,40 @@ class LessonDetailsViewController: UIViewController {
     }
     
     @objc func cancelDownload() {
-        downloadTask?.cancel()
+        downloadTask?.cancel  { resumeDataOrNil in
+            guard let resumeData = resumeDataOrNil else {
+                self.handleDownloadStatus(.initial)
+                print("LOG: resumeData is nil in cancel")
+
+              // download can't be resumed; remove from UI if necessary
+              return
+            }
+            self.resumeData = resumeData
+        }
+        handleDownloadStatus(.canceled)
+    }
+
+    @objc func resumeDownload() {
+        guard let resumeData = resumeData else {
+            print("LOG: resumeData is nil")
+            self.handleDownloadStatus(.initial)
+            // inform the user the download can't be resumed
+            return
+        }
+        let downloadTask = URLSession.shared.downloadTask(withResumeData: resumeData)
+        observation = downloadTask.progress.observe(\.fractionCompleted) { progress, _ in
+            DispatchQueue.main.async {
+                self.progressView.progress = Float(progress.fractionCompleted)
+
+                if self.progressView.progress == 1 {
+                    self.handleDownloadStatus(.downloaded)
+                }
+            }
+            print("Resume downloadVideo progress: ", progress.fractionCompleted)
+        }
+        downloadTask.resume()
+        self.downloadTask = downloadTask
+        handleDownloadStatus(.downloading)
     }
     
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
@@ -188,9 +251,8 @@ class LessonDetailsViewController: UIViewController {
     
     func downloadVideo() {
         let videoURL = URL(string: lesson.videoURL)!
-        
-        self.parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Cancel", style: .plain, target: self, action: #selector(cancelDownload))
-        
+
+        handleDownloadStatus(.downloading)
         downloadTask = URLSession.shared.downloadTask(with: videoURL) {
             urlOrNil, responseOrNil, errorOrNil in
             // check for and handle errors:
@@ -225,8 +287,7 @@ class LessonDetailsViewController: UIViewController {
                 self.progressView.progress = Float(progress.fractionCompleted)
 
                 if self.progressView.progress == 1 {
-                    self.progressView.isHidden = true
-                    self.parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(systemItem: .done)
+                    self.handleDownloadStatus(.downloaded)
                 }
             }
             print("downloadVideo progress: ", progress.fractionCompleted)

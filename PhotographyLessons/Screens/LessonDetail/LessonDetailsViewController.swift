@@ -76,6 +76,8 @@ class LessonDetailsViewController: UIViewController {
         self.currentLessonIndex = currentLessonIndex
         self.lesson = lessons[currentLessonIndex]
         super.init(nibName: nil, bundle: nil)
+
+
     }
     
     required init?(coder: NSCoder) {
@@ -85,12 +87,10 @@ class LessonDetailsViewController: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "icloud.and.arrow.down"), for: .normal)
-        button.setTitle("Download", for: .normal)
-        button.sizeToFit()
-        button.addTarget(self, action:  #selector(downloadButtonTapped), for: .touchUpInside)
-        self.parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: button)
+        let url = URL(string: lesson.videoURL)!
+        checkIfFileExists(with: url.lastPathComponent)
+        ? handleDownloadStatus(.downloaded)
+        : handleDownloadStatus(.initial)
     }
     
     override func viewDidLoad() {
@@ -104,7 +104,16 @@ class LessonDetailsViewController: UIViewController {
             .navigationItem
             .rightBarButtonItem = UIBarButtonItem(title: title, style: .plain, target: self, action: action)
     }
-    
+
+    func downloadButton() {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "icloud.and.arrow.down"), for: .normal)
+        button.setTitle("Download", for: .normal)
+        button.sizeToFit()
+        button.addTarget(self, action:  #selector(downloadButtonTapped), for: .touchUpInside)
+        self.parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: button)
+    }
+
     @objc func nextButtonTapped() {
         if currentLessonIndex + 1 < lessons.count {
             currentLessonIndex += 1
@@ -121,6 +130,7 @@ class LessonDetailsViewController: UIViewController {
         switch status {
         case .initial:
             self.progressView.isHidden = true
+            downloadButton()
         case .downloading:
             self.progressView.isHidden = false
             trackDownload()
@@ -148,10 +158,15 @@ class LessonDetailsViewController: UIViewController {
     }
     
     private func configure() {
-        playVideo(with: URL(string: lesson.videoURL)!)
+        let url = URL(string: lesson.videoURL)!
+        playVideo(with: url)
         titleLabel.text = lesson.name
         descriptionLabel.text = lesson.description
         progressView.isHidden = true
+
+        checkIfFileExists(with: url.lastPathComponent)
+        ? handleDownloadStatus(.downloaded)
+        : handleDownloadStatus(.initial)
     }
     
     @objc func downloadButtonTapped() {
@@ -278,6 +293,14 @@ class LessonDetailsViewController: UIViewController {
             }
             print("downloadVideo progress: ", progress.fractionCompleted)
         }
+    }
+
+    func checkIfFileExists(with name: String) -> Bool {
+        let fileManager = FileManager.default
+
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let filePath = documentsDirectory.appendingPathComponent(name).path
+        return fileManager.fileExists(atPath: filePath)
     }
     
     func playVideo(with url: URL) {

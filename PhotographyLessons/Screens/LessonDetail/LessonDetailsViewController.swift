@@ -7,15 +7,6 @@
 
 import UIKit
 import AVKit
-import Combine
-import SwiftUI
-
-enum DownloadState {
-    case initial
-    case downloading
-    case canceled
-    case downloaded
-}
 
 class LessonDetailsViewController: UIViewController {
     private let activityIndicator = UIActivityIndicatorView(style: .large)
@@ -132,6 +123,7 @@ class LessonDetailsViewController: UIViewController {
             self.progressView.isHidden = true
         case .downloading:
             self.progressView.isHidden = false
+            trackDownload()
             setRightBarItem(title: "Cancel", action:  #selector(cancelDownload))
         case .canceled:
             self.progressView.isHidden = false
@@ -163,16 +155,18 @@ class LessonDetailsViewController: UIViewController {
     }
     
     @objc func downloadButtonTapped() {
-        downloadVideo()
+        downloadVideo(from: URL(string: lesson.videoURL)!)
+        handleDownloadStatus(.downloading)
     }
     
     @objc func cancelDownload() {
         downloadTask?.cancel  { resumeDataOrNil in
             guard let resumeData = resumeDataOrNil else {
-                self.handleDownloadStatus(.initial)
-                print("LOG: resumeData is nil in cancel")
+                DispatchQueue.main.async {
+                    self.handleDownloadStatus(.initial)
+                     print("LOG: resumeData is nil in cancel")
+                }
 
-              // download can't be resumed; remove from UI if necessary
               return
             }
             self.resumeData = resumeData
@@ -182,22 +176,15 @@ class LessonDetailsViewController: UIViewController {
 
     @objc func resumeDownload() {
         guard let resumeData = resumeData else {
-            print("LOG: resumeData is nil")
-            self.handleDownloadStatus(.initial)
-            // inform the user the download can't be resumed
+            DispatchQueue.main.async {
+
+                print("LOG: resumeData is nil")
+                self.handleDownloadStatus(.initial)
+            }
             return
         }
-        let downloadTask = URLSession.shared.downloadTask(withResumeData: resumeData)
-        observation = downloadTask.progress.observe(\.fractionCompleted) { progress, _ in
-            DispatchQueue.main.async {
-                self.progressView.progress = Float(progress.fractionCompleted)
 
-                if self.progressView.progress == 1 {
-                    self.handleDownloadStatus(.downloaded)
-                }
-            }
-            print("Resume downloadVideo progress: ", progress.fractionCompleted)
-        }
+        let downloadTask = URLSession.shared.downloadTask(withResumeData: resumeData)
         downloadTask.resume()
         self.downloadTask = downloadTask
         handleDownloadStatus(.downloading)
@@ -209,13 +196,8 @@ class LessonDetailsViewController: UIViewController {
             case .readyToPlay:
                 activityIndicator.stopAnimating()
                 player.play()
-                print("LOG: observe player status readyToPlay")
-            case .failed:
-                print("LOG: observe player status failed")
-            case .unknown:
-                print("LOG: observe player status unknown")
-            @unknown default:
-                fatalError()
+            default:
+                print("LOG: something went wrong")
             }
         }
     }
@@ -249,15 +231,15 @@ class LessonDetailsViewController: UIViewController {
         ])
     }
     
-    func downloadVideo() {
-        let videoURL = URL(string: lesson.videoURL)!
-
+    func downloadVideo(from url: URL) {
         handleDownloadStatus(.downloading)
-        downloadTask = URLSession.shared.downloadTask(with: videoURL) {
+        downloadTask = URLSession.shared.downloadTask(with: url) {
             urlOrNil, responseOrNil, errorOrNil in
-            // check for and handle errors:
-            // * errorOrNil should be nil
-            // * responseOrNil should be an HTTPURLResponse with statusCode in 200..<299
+            if errorOrNil != nil {
+                DispatchQueue.main.async {
+                    self.handleDownloadStatus(.initial)
+                }
+            }
             
             guard let fileURL = urlOrNil else { return }
             do {
@@ -267,10 +249,9 @@ class LessonDetailsViewController: UIViewController {
                                         appropriateFor: nil,
                                         create: false)
                 let savedURL = documentsURL.appendingPathComponent(
-                    fileURL
-                        .lastPathComponent
-                        .replacingOccurrences(of: ".tmp", with: ".mp4")
+                    url.lastPathComponent
                 )
+                print("LOG: savedURL \(savedURL)")
                 
                 try FileManager.default.moveItem(at: fileURL, to: savedURL)
                 DispatchQueue.main.async {
@@ -281,6 +262,11 @@ class LessonDetailsViewController: UIViewController {
                 print ("file error: \(error)")
             }
         }
+
+        downloadTask?.resume()
+    }
+
+    func trackDownload() {
         observation = downloadTask?.progress.observe(\.fractionCompleted) { progress, _ in
             DispatchQueue.main.async {
                 self.progressView.isHidden = false
@@ -292,7 +278,6 @@ class LessonDetailsViewController: UIViewController {
             }
             print("downloadVideo progress: ", progress.fractionCompleted)
         }
-        downloadTask?.resume()
     }
     
     func playVideo(with url: URL) {

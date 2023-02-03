@@ -16,11 +16,13 @@ class LessonListViewModel: ObservableObject {
         URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
             guard let self = self else { return }
 
-            if let error = error {
+            if error != nil {
                 self.lessons = self.getLessonList()
             } else if let data = data {
                 let lessonsResponse = try! JSONDecoder().decode(LessonsResponse.self, from: data)
-                self.lessons = lessonsResponse.lessons
+                DispatchQueue.main.async {
+                    self.lessons = lessonsResponse.lessons
+                }
                 self.saveLessonListInCache(lessonsResponse.lessons)
             }
         }

@@ -54,7 +54,7 @@ class LessonDetailsViewController: UIViewController {
         button.semanticContentAttribute = .forceRightToLeft
         return button
     }()
-    
+    private var viewModel = LessonDetailsViewModel()
     private var downloadTask: URLSessionDownloadTask?
     private var observation: NSKeyValueObservation?
     private var downloadStatus: DownloadState = .initial
@@ -86,9 +86,9 @@ class LessonDetailsViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        
+
         let url = URL(string: lesson.videoURL)!
-        checkIfFileExists(with: url.lastPathComponent)
+        viewModel.checkIfFileExists(with: url.lastPathComponent)
         ? handleDownloadStatus(.downloaded)
         : handleDownloadStatus(.initial)
     }
@@ -159,14 +159,19 @@ class LessonDetailsViewController: UIViewController {
     
     private func configure() {
         let url = URL(string: lesson.videoURL)!
-        playVideo(with: url)
         titleLabel.text = lesson.name
         descriptionLabel.text = lesson.description
         progressView.isHidden = true
 
-        checkIfFileExists(with: url.lastPathComponent)
-        ? handleDownloadStatus(.downloaded)
-        : handleDownloadStatus(.initial)
+        if viewModel.checkIfFileExists(with: url.lastPathComponent) {
+            handleDownloadStatus(.downloaded)
+            let localUrl = viewModel.getFilePath(for: url.lastPathComponent)
+            playVideo(with: URL(filePath: localUrl))
+
+        } else {
+            handleDownloadStatus(.initial)
+            playVideo(with: url)
+        }
     }
     
     @objc func downloadButtonTapped() {
@@ -192,7 +197,6 @@ class LessonDetailsViewController: UIViewController {
     @objc func resumeDownload() {
         guard let resumeData = resumeData else {
             DispatchQueue.main.async {
-
                 print("LOG: resumeData is nil")
                 self.handleDownloadStatus(.initial)
             }
@@ -293,14 +297,6 @@ class LessonDetailsViewController: UIViewController {
             }
             print("downloadVideo progress: ", progress.fractionCompleted)
         }
-    }
-
-    func checkIfFileExists(with name: String) -> Bool {
-        let fileManager = FileManager.default
-
-        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-        let filePath = documentsDirectory.appendingPathComponent(name).path
-        return fileManager.fileExists(atPath: filePath)
     }
     
     func playVideo(with url: URL) {

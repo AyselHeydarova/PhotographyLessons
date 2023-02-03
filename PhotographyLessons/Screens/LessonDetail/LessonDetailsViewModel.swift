@@ -21,6 +21,20 @@ class LessonDetailsViewModel {
     var downloadTask: URLSessionDownloadTask?
     var observation: NSKeyValueObservation?
 
+    func checkIfFileExists(with name: String) -> Bool {
+        let fileManager = FileManager.default
+        let filePath = getFilePath(for: name)
+        return fileManager.fileExists(atPath: filePath)
+    }
+
+    func getFilePath(for name: String) -> String {
+        let fileManager = FileManager.default
+        let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let filePath = documentsDirectory.appendingPathComponent(name).path
+
+        return filePath
+    }
+
     func handleDownloadStatus(downloadState: DownloadState) {
         self.downloadState = downloadState
         switch downloadState {

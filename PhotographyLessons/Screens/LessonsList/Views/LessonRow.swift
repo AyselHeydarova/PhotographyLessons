@@ -12,25 +12,8 @@ struct LessonRow: View {
 
     var body: some View {
         HStack {
-            AsyncImage(
-                url: URL(string: lesson.thumbnail),
-                content: { image in
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 100, height: 60)
-                        .cornerRadius(5)
-                },
-                placeholder: {
-                    ZStack {
-                        Rectangle()
-                            .frame(maxWidth: 100, maxHeight: 60)
-                            .cornerRadius(5)
-                            .foregroundColor(Color.gray)
-                        ProgressView()
-                    }
-                }
-            )
+            ImageLoader(url: URL(string: lesson.thumbnail)!)
+                .cornerRadius(5)
 
             Text(lesson.name)
         }

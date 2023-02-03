@@ -20,6 +20,7 @@
 		2761C6B52988E07D00DE4D16 /* LessonRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2761C6B42988E07D00DE4D16 /* LessonRow.swift */; };
 		2761C6BA2988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2761C6B92988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift */; };
 		27A2606E298BDFA100898FDA /* LessonDetailsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A2606D298BDFA100898FDA /* LessonDetailsViewModel.swift */; };
+		27A26070298CE2A700898FDA /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A2606F298CE2A700898FDA /* ImageLoader.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +57,7 @@
 		2761C6B42988E07D00DE4D16 /* LessonRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonRow.swift; sourceTree = "<group>"; };
 		2761C6B92988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonDetailsViewControllerWrapper.swift; sourceTree = "<group>"; };
 		27A2606D298BDFA100898FDA /* LessonDetailsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonDetailsViewModel.swift; sourceTree = "<group>"; };
+		27A2606F298CE2A700898FDA /* ImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -171,6 +173,7 @@
 				2761C6B32988E05800DE4D16 /* Views */,
 				270453AD2987A3C200D54F62 /* LessonsListView.swift */,
 				273112B02989A69C0011485A /* LessonListViewModel.swift */,
+				27A2606F298CE2A700898FDA /* ImageLoader.swift */,
 			);
 			path = LessonsList;
 			sourceTree = "<group>";
@@ -320,6 +323,7 @@
 				273112B12989A69C0011485A /* LessonListViewModel.swift in Sources */,
 				2761C6B52988E07D00DE4D16 /* LessonRow.swift in Sources */,
 				270453AE2987A3C200D54F62 /* LessonsListView.swift in Sources */,
+				27A26070298CE2A700898FDA /* ImageLoader.swift in Sources */,
 				27A2606E298BDFA100898FDA /* LessonDetailsViewModel.swift in Sources */,
 				270453B92988299300D54F62 /* LessonDetailsViewController.swift in Sources */,
 				2761C6B22988E03400DE4D16 /* LessonsResponse.swift in Sources */,

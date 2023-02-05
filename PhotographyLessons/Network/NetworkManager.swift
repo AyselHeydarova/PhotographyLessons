@@ -7,9 +7,21 @@
 
 import Foundation
 
+protocol URLSessionProtocol {
+    func dataTask(with request: URLRequest, completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask
+}
+
+extension URLSession: URLSessionProtocol { }
+
 final class NetworkManager {
 
-    private class func buildURL(endpoint: API) -> URLComponents {
+    var session: URLSessionProtocol
+
+    init(session: URLSessionProtocol = URLSession(configuration: .default)) {
+        self.session = session
+    }
+
+    private func buildURL(endpoint: API) -> URLComponents {
         var components = URLComponents()
         components.scheme = endpoint.scheme.rawValue
         components.host = endpoint.baseURL
@@ -18,7 +30,7 @@ final class NetworkManager {
         return components
     }
 
-    class func request<T: Decodable>(endpoint: API,
+    func request<T: Decodable>(endpoint: API,
                                      completion: @escaping (Result<T, Error>)
                                      -> Void) {
         let components = buildURL(endpoint: endpoint)
@@ -28,7 +40,7 @@ final class NetworkManager {
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = endpoint.method.rawValue
-        let session = URLSession(configuration: .default)
+
         let dataTask = session.dataTask(with: urlRequest) {
             data, response, error in
             if let error = error {

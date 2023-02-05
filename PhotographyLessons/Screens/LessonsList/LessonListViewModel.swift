@@ -7,13 +7,31 @@
 
 import SwiftUI
 
+protocol UserDefaultsProtocol {
+    func set(_ value: Any?, forKey defaultName: String)
+    func data(forKey defaultName: String) -> Data?
+}
+
+extension UserDefaults: UserDefaultsProtocol {}
+
 class LessonListViewModel: ObservableObject {
     @Published var lessons = [Lesson]()
+
+    private var networkManager: NetworkManager
+    private var userDefaults: UserDefaultsProtocol = UserDefaults.standard
+
+    init(
+        networkManager: NetworkManager = NetworkManager(),
+        userDefaults: UserDefaultsProtocol = UserDefaults.standard
+    ) {
+        self.networkManager = networkManager
+        self.userDefaults = userDefaults
+    }
 
     func fetchLessons() {
         let endpoint = PhotographyLessonsAPI.fetchLessons
 
-        NetworkManager
+        networkManager
             .request(endpoint: endpoint) { [weak self] (result: Result<LessonsResponse, Error>) in
                 guard let self = self else { return }
 
@@ -33,14 +51,14 @@ class LessonListViewModel: ObservableObject {
             let encoder = JSONEncoder()
             let lessonsData = try encoder.encode(lessons)
 
-            UserDefaults.standard.set(lessonsData, forKey: "LessonList")
+            userDefaults.set(lessonsData, forKey: "LessonList")
         } catch {
             print("Error encoding object: \(error)")
         }
     }
 
     func getLessonList() -> [Lesson] {
-        if let data = UserDefaults.standard.data(forKey: "LessonList") {
+        if let data = userDefaults.data(forKey: "LessonList") {
             do {
                 let decoder = JSONDecoder()
                 let lessons = try decoder.decode([Lesson] .self, from: data)

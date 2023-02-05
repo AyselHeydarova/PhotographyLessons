@@ -87,6 +87,25 @@ class LessonDetailsViewController: UIViewController {
         videoPlayer.player?.pause()
     }
 
+    override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
+         super.viewWillTransition(to: size, with: coordinator)
+         if UIDevice.current.orientation.isLandscape {
+             NSLayoutConstraint.activate([
+                videoPlayer.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+                 videoPlayer.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                 videoPlayer.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                 videoPlayer.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+             ])
+         } else {
+             for subview in view.subviews {
+                 subview.removeFromSuperview()
+             }
+             addSubviews()
+             addConstraints()
+         }
+     }
+
     private func setup() {
         addSubviews()
         addConstraints()

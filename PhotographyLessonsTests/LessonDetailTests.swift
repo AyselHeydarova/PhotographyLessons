@@ -12,17 +12,16 @@ final class LessonDetailsViewModelTests: XCTestCase {
     var sut: LessonDetailsViewModel!
     var lessons: [Lesson]!
     var currentLessonIndex: Int!
+    let mockURLSession = MockURLSession()
 
     override func setUp() {
         super.setUp()
-
-        // Initialize the required objects for testing
         lessons = [
             Lesson(id: 1, name: "Lesson 1", thumbnail: "", description: "test description", videoURL: "https://example.com/lesson1.mp4"),
             Lesson(id: 2, name: "Lesson 2", thumbnail: "", description: "test description 2", videoURL: "https://example.com/lesson2.mp4"),
         ]
         currentLessonIndex = 0
-        sut = LessonDetailsViewModel(lessons: lessons, currentLessonIndex: currentLessonIndex)
+        sut = LessonDetailsViewModel(lessons: lessons, currentLessonIndex: currentLessonIndex, urlSession: mockURLSession)
     }
 
     override func tearDown() {
@@ -70,7 +69,13 @@ final class LessonDetailsViewModelTests: XCTestCase {
         sut.downloadVideo()
 
         // Then
+
         XCTAssertEqual(sut.downloadState, .downloading)
+        XCTAssertEqual(mockURLSession.downloadTaskCount, 1)
+        XCTAssertEqual(
+            mockURLSession.downloadTaskURL.first,
+             URL(string: "https://example.com/lesson1.mp4")
+        )
     }
 
     func testCancelDownload() {

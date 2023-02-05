@@ -13,9 +13,19 @@ private class DummyURLSessionDataTask: URLSessionDataTask {
     }
 }
 
+private class DummyURLSessionDownloadTask: URLSessionDownloadTask {
+    override func resume() {
+    }
+}
+
 class MockURLSession: URLSessionProtocol {
+    var downloadTaskCount = 0
+    var downloadTaskURL: [URL] = []
+
     var dataTaskCallCount = 0
     var dataTaskArgsRequest: [URLRequest] = []
+
+    var isResumeCalled = false
 
     func dataTask(with request: URLRequest, completionHandler: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask {
         dataTaskCallCount += 1
@@ -23,4 +33,18 @@ class MockURLSession: URLSessionProtocol {
 
         return DummyURLSessionDataTask()
     }
+
+    func downloadTask(with url: URL, completionHandler: @escaping @Sendable (URL?, URLResponse?, Error?) -> Void) -> URLSessionDownloadTask {
+        downloadTaskCount += 1
+        downloadTaskURL.append(url)
+
+        return DummyURLSessionDownloadTask()
+    }
+
+    func downloadTask(withResumeData resumeData: Data) -> URLSessionDownloadTask {
+        isResumeCalled = true
+
+        return DummyURLSessionDownloadTask()
+    }
+
 }

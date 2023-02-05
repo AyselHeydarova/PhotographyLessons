@@ -21,6 +21,7 @@ class LessonDetailsViewModel {
     @Published var lesson: Lesson
     @Published var downloadState: DownloadState = .initial
 
+    private var urlSession: URLSessionProtocol
     private var subscriptions = Set<AnyCancellable>()
     private var resumeData: Data?
     private (set) var downloadTask: URLSessionDownloadTask?
@@ -34,7 +35,8 @@ class LessonDetailsViewModel {
 
     var urlForVideo: URL?
 
-    init(lessons: [Lesson], currentLessonIndex: Int) {
+    init(lessons: [Lesson], currentLessonIndex: Int, urlSession: URLSessionProtocol = URLSession.shared) {
+        self.urlSession = urlSession
         self.lessons = lessons
         self.lesson = lessons[currentLessonIndex]
         self.currentLessonIndex = currentLessonIndex
@@ -90,7 +92,7 @@ class LessonDetailsViewModel {
         guard let url = url else { return }
 
         downloadState = .downloading
-        downloadTask = URLSession.shared.downloadTask(with: url) {
+        downloadTask = urlSession.downloadTask(with: url) {
             urlOrNil, responseOrNil, errorOrNil in
 
             guard let fileURL = urlOrNil else { return }
@@ -134,7 +136,7 @@ class LessonDetailsViewModel {
             return
         }
 
-        let downloadTask = URLSession.shared.downloadTask(withResumeData: resumeData)
+        let downloadTask = urlSession.downloadTask(withResumeData: resumeData)
         downloadTask.resume()
         self.downloadTask = downloadTask
         downloadState = .downloading

@@ -23,10 +23,10 @@ class LessonDetailsViewModel {
 
     private var subscriptions = Set<AnyCancellable>()
     private var resumeData: Data?
-    private var downloadTask: URLSessionDownloadTask?
-    private var observation: NSKeyValueObservation?
+    private (set) var downloadTask: URLSessionDownloadTask?
+    private (set) var observation: NSKeyValueObservation?
     private var lessons: [Lesson]
-    private var currentLessonIndex: Int {
+    private (set) var currentLessonIndex: Int {
         didSet {
             lesson = lessons[currentLessonIndex]
         }

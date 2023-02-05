@@ -11,22 +11,21 @@ class LessonListViewModel: ObservableObject {
     @Published var lessons = [Lesson]()
 
     func fetchLessons() {
-        let url = URL(string: "https://iphonephotographyschool.com/test-api/lessons")!
+        let endpoint = PhotographyLessonsAPI.fetchLessons
 
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, error in
-            guard let self = self else { return }
+        NetworkManager
+            .request(endpoint: endpoint) { [weak self] (result: Result<LessonsResponse, Error>) in
+                guard let self = self else { return }
 
-            if error != nil {
-                self.lessons = self.getLessonList()
-            } else if let data = data {
-                let lessonsResponse = try! JSONDecoder().decode(LessonsResponse.self, from: data)
-                DispatchQueue.main.async {
-                    self.lessons = lessonsResponse.lessons
+                switch result {
+                case .success(let data):
+                    self.lessons = data.lessons
+                    self.saveLessonListInCache(data.lessons)
+
+                case .failure(_):
+                    self.lessons = self.getLessonList()
                 }
-                self.saveLessonListInCache(lessonsResponse.lessons)
             }
-        }
-        .resume()
     }
 
     func saveLessonListInCache(_ lessons: [Lesson]) {

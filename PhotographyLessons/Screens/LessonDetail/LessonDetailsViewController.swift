@@ -69,7 +69,6 @@ class LessonDetailsViewController: UIViewController {
     private var subscriptions = Set<AnyCancellable>()
     private var viewModel: LessonDetailsViewModel
 
-    
     init(viewModel: LessonDetailsViewModel) {
         self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
@@ -106,7 +105,6 @@ class LessonDetailsViewController: UIViewController {
         viewModel.$downloadState
             .receive(on: DispatchQueue.main)
             .sink { [weak self] downloadState in
-                print("LOG: downloadState in sink \(downloadState)")
                 guard let self = self else { return }
 
                 switch downloadState {

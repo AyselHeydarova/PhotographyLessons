@@ -19,9 +19,9 @@ struct LessonDetailsViewControllerWrapper: UIViewControllerRepresentable {
     }
 
     func makeUIViewController(context: UIViewControllerRepresentableContext<LessonDetailsViewControllerWrapper>) -> UIViewController {
+        let viewModel = LessonDetailsViewModel(lessons: lessons, currentLessonIndex: currentIndex)
         let viewController = LessonDetailsViewController(
-            lessons: lessons,
-            currentLessonIndex: currentIndex
+            viewModel: viewModel
         )
         return viewController
     }

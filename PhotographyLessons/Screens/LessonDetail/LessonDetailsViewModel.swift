@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 enum DownloadState {
     case initial
@@ -15,16 +16,59 @@ enum DownloadState {
 }
 
 class LessonDetailsViewModel {
-    var downloadState: DownloadState = .initial
-    var downloadProgress: Float = 0.0
-    var resumeData: Data?
-    var downloadTask: URLSessionDownloadTask?
-    var observation: NSKeyValueObservation?
+    @Published var isProgressViewHidden: Bool = true
+    @Published var downloadProgress: Float = 0.0
+    @Published var lesson: Lesson
+    @Published var downloadState: DownloadState = .initial
 
-    func checkIfFileExists(with name: String) -> Bool {
+    private var subscriptions = Set<AnyCancellable>()
+    private var resumeData: Data?
+    private var downloadTask: URLSessionDownloadTask?
+    private var observation: NSKeyValueObservation?
+    private var lessons: [Lesson]
+    private var currentLessonIndex: Int {
+        didSet {
+            lesson = lessons[currentLessonIndex]
+        }
+    }
+
+    var urlForVideo: URL?
+
+    init(lessons: [Lesson], currentLessonIndex: Int) {
+        self.lessons = lessons
+        self.lesson = lessons[currentLessonIndex]
+        self.currentLessonIndex = currentLessonIndex
+
+        $downloadState.sink { [weak self] state in
+            guard let self = self else { return }
+
+            switch state {
+            case .initial:
+                self.isProgressViewHidden = true
+            case .downloading:
+                self.isProgressViewHidden = false
+                self.trackDownload()
+            case .canceled:
+                self.isProgressViewHidden = false
+            case .downloaded:
+                self.isProgressViewHidden = true
+            }
+        }.store(in: &subscriptions)
+    }
+
+    func checkIfFileExists() {
+        let url = URL(string: lesson.videoURL)
+        let fileName = url?.lastPathComponent
+        guard let fileName = fileName else { return }
+
         let fileManager = FileManager.default
-        let filePath = getFilePath(for: name)
-        return fileManager.fileExists(atPath: filePath)
+        let filePath = getFilePath(for: fileName)
+        let isFileExists = fileManager.fileExists(atPath: filePath)
+
+        downloadState = isFileExists ? .downloaded : .initial
+        urlForVideo = isFileExists ? URL(filePath: filePath) : url
+
+        return
     }
 
     func getFilePath(for name: String) -> String {
@@ -35,18 +79,73 @@ class LessonDetailsViewModel {
         return filePath
     }
 
-    func handleDownloadStatus(downloadState: DownloadState) {
-        self.downloadState = downloadState
-        switch downloadState {
-        case .initial:
-            break
-        case .downloading:
-            break
-        case .canceled:
-            break
-        case .downloaded:
-            break
+    func nextButtonTapped() {
+        if currentLessonIndex + 1 < lessons.count {
+            currentLessonIndex += 1
         }
     }
-    
+
+    func downloadVideo() {
+        let url =  URL(string: lesson.videoURL)
+        guard let url = url else { return }
+
+        downloadState = .downloading
+        downloadTask = URLSession.shared.downloadTask(with: url) {
+            urlOrNil, responseOrNil, errorOrNil in
+
+            guard let fileURL = urlOrNil else { return }
+            do {
+                let documentsURL = try
+                FileManager.default.url(for: .documentDirectory,
+                                        in: .userDomainMask,
+                                        appropriateFor: nil,
+                                        create: false)
+                let savedURL = documentsURL.appendingPathComponent(
+                    url.lastPathComponent
+                )
+
+                try FileManager.default.moveItem(at: fileURL, to: savedURL)
+                self.urlForVideo = savedURL
+
+            } catch {
+                print ("file error: \(error)")
+            }
+        }
+        trackDownload()
+        downloadTask?.resume()
+    }
+
+    func cancelDownload() {
+        downloadTask?.cancel  { resumeDataOrNil in
+            guard let resumeData = resumeDataOrNil else {
+                    self.downloadState = .initial
+              return
+            }
+            self.resumeData = resumeData
+        }
+        downloadState = .canceled
+    }
+
+    func resumeDownload() {
+        guard let resumeData = resumeData else {
+            DispatchQueue.main.async {
+                self.downloadState = .initial
+            }
+            return
+        }
+
+        let downloadTask = URLSession.shared.downloadTask(withResumeData: resumeData)
+        downloadTask.resume()
+        self.downloadTask = downloadTask
+        downloadState = .downloading
+    }
+
+    func trackDownload() {
+        observation = downloadTask?.progress.observe(\.fractionCompleted) { progress, _ in
+            self.downloadProgress = Float(progress.fractionCompleted)
+            if self.downloadProgress == 1 {
+                self.downloadState = .downloaded
+            }
+        }
+    }
 }

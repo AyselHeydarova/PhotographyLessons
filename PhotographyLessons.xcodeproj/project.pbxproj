@@ -181,8 +181,8 @@
 		2761C6B82988E0E300DE4D16 /* LessonDetail */ = {
 			isa = PBXGroup;
 			children = (
-				270453B82988299300D54F62 /* LessonDetailsViewController.swift */,
 				2761C6B92988E20500DE4D16 /* LessonDetailsViewControllerWrapper.swift */,
+				270453B82988299300D54F62 /* LessonDetailsViewController.swift */,
 				27A2606D298BDFA100898FDA /* LessonDetailsViewModel.swift */,
 			);
 			path = LessonDetail;

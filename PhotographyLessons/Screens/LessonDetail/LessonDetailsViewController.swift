@@ -7,9 +7,9 @@
 
 import UIKit
 import AVKit
+import Combine
 
 class LessonDetailsViewController: UIViewController {
-    private let activityIndicator = UIActivityIndicatorView(style: .large)
 
     private lazy var videoPreviewLayer: UIView = {
         let view = UIView()
@@ -54,30 +54,25 @@ class LessonDetailsViewController: UIViewController {
         button.semanticContentAttribute = .forceRightToLeft
         return button
     }()
-    private var viewModel = LessonDetailsViewModel()
-    private var downloadTask: URLSessionDownloadTask?
-    private var observation: NSKeyValueObservation?
-    private var downloadStatus: DownloadState = .initial
-    private var lessons: [Lesson]
-    private var lesson: Lesson
-    private var resumeData: Data?
-    private var currentLessonIndex: Int {
-        didSet {
-            lesson = lessons[currentLessonIndex]
-        }
-    }
+
+    private lazy var downloadButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.setImage(UIImage(systemName: "icloud.and.arrow.down"), for: .normal)
+        button.setTitle("Download", for: .normal)
+        button.sizeToFit()
+        button.addTarget(self, action:  #selector(downloadButtonTapped), for: .touchUpInside)
+
+        return button
+    }()
     
-    deinit {
-        observation?.invalidate()
-    }
+    private var subscriptions = Set<AnyCancellable>()
+    private var viewModel: LessonDetailsViewModel
+
     
-    init(lessons: [Lesson], currentLessonIndex: Int) {
-        self.lessons = lessons
-        self.currentLessonIndex = currentLessonIndex
-        self.lesson = lessons[currentLessonIndex]
+    init(viewModel: LessonDetailsViewModel) {
+        self.viewModel = viewModel
         super.init(nibName: nil, bundle: nil)
-
-
     }
     
     required init?(coder: NSCoder) {
@@ -86,139 +81,113 @@ class LessonDetailsViewController: UIViewController {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-
-        let url = URL(string: lesson.videoURL)!
-        viewModel.checkIfFileExists(with: url.lastPathComponent)
-        ? handleDownloadStatus(.downloaded)
-        : handleDownloadStatus(.initial)
+        viewModel.checkIfFileExists()
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        addSubviews()
-        configure()
+        setup()
     }
 
-    func setRightBarItem(title: String, action: Selector?) {
-        self.parent?
-            .navigationItem
-            .rightBarButtonItem = UIBarButtonItem(title: title, style: .plain, target: self, action: action)
-    }
-
-    func downloadButton() {
-        let button = UIButton(type: .system)
-        button.setImage(UIImage(systemName: "icloud.and.arrow.down"), for: .normal)
-        button.setTitle("Download", for: .normal)
-        button.sizeToFit()
-        button.addTarget(self, action:  #selector(downloadButtonTapped), for: .touchUpInside)
-        self.parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: button)
-    }
-
-    @objc func nextButtonTapped() {
-        if currentLessonIndex + 1 < lessons.count {
-            currentLessonIndex += 1
-            configure()
-        }
-    }
-    
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         videoPlayer.player?.pause()
     }
 
-    func handleDownloadStatus(_ status: DownloadState) {
-        switch status {
-        case .initial:
-            self.progressView.isHidden = true
-            downloadButton()
-        case .downloading:
-            self.progressView.isHidden = false
-            trackDownload()
-            setRightBarItem(title: "Cancel", action:  #selector(cancelDownload))
-        case .canceled:
-            self.progressView.isHidden = false
-            setRightBarItem(title: "Resume", action: #selector(resumeDownload))
-        case .downloaded:
-            self.progressView.isHidden = true
-            setRightBarItem(title: "Downloaded", action: nil)
-        }
+    private func setup() {
+        addSubviews()
+        addConstraints()
+        handleLessonChange()
+        handleDownloadState()
+        handleDownloadProgress()
     }
-    
+
+    private func handleDownloadState() {
+        viewModel.$downloadState
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] downloadState in
+                print("LOG: downloadState in sink \(downloadState)")
+                guard let self = self else { return }
+
+                switch downloadState {
+                case .initial:
+                    self.parent?.navigationItem.rightBarButtonItem = UIBarButtonItem(customView: self.downloadButton)
+                case .downloading:
+                    self.setRightBarItem(title: "Cancel", action:  #selector(self.cancelDownload))
+                case .canceled:
+                    self.setRightBarItem(title: "Resume", action: #selector(self.resumeDownload))
+                case .downloaded:
+                    self.setRightBarItem(title: "Downloaded", action: nil)
+                }
+            }
+            .store(in: &subscriptions)
+    }
+
+    private func handleLessonChange() {
+        viewModel.$lesson
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] lesson in
+                guard let self = self else { return }
+                self.titleLabel.text = lesson.name
+                self.descriptionLabel.text = lesson.description
+                self.viewModel.checkIfFileExists()
+
+                guard let url = self.viewModel.urlForVideo else { return }
+                self.playVideo(with: url)
+
+            }.store(in: &subscriptions)
+    }
+
+    private func handleDownloadProgress() {
+        viewModel.$isProgressViewHidden
+            .receive(on: DispatchQueue.main)
+            .sink { isHidden in
+                self.progressView.isHidden = isHidden
+            }.store(in: &subscriptions)
+
+        viewModel.$downloadProgress
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] progress in
+            self?.progressView.progress = progress
+        }.store(in: &subscriptions)
+    }
+
+    private func setRightBarItem(title: String, action: Selector?) {
+        self.parent?
+            .navigationItem
+            .rightBarButtonItem = UIBarButtonItem(title: title, style: .plain, target: self, action: action)
+    }
+
+    private func playVideo(with url: URL) {
+        let player = AVPlayer(url: url)
+        self.videoPlayer.player = player
+    }
+
+    @objc func downloadButtonTapped() {
+        viewModel.downloadVideo()
+    }
+
+    @objc func cancelDownload() {
+        viewModel.cancelDownload()
+    }
+
+    @objc func resumeDownload() {
+        viewModel.resumeDownload()
+    }
+
+    @objc func nextButtonTapped() {
+        viewModel.nextButtonTapped()
+    }
+
     private func addSubviews() {
         [videoPreviewLayer, titleLabel, descriptionLabel, nextButton, progressView]
             .forEach(view.addSubview)
-        activityIndicator.startAnimating()
-        videoPreviewLayer.addSubview(activityIndicator)
+
         self.videoPlayer.view.frame = self.videoPreviewLayer.frame
         self.addChild(self.videoPlayer)
         self.view.addSubview(self.videoPlayer.view)
         
         videoPlayer.player?.addObserver(self, forKeyPath: "status", options: [.old, .new], context: nil)
-        addConstraints()
-    }
-    
-    private func configure() {
-        let url = URL(string: lesson.videoURL)!
-        titleLabel.text = lesson.name
-        descriptionLabel.text = lesson.description
-        progressView.isHidden = true
-
-        if viewModel.checkIfFileExists(with: url.lastPathComponent) {
-            handleDownloadStatus(.downloaded)
-            let localUrl = viewModel.getFilePath(for: url.lastPathComponent)
-            playVideo(with: URL(filePath: localUrl))
-
-        } else {
-            handleDownloadStatus(.initial)
-            playVideo(with: url)
-        }
-    }
-    
-    @objc func downloadButtonTapped() {
-        downloadVideo(from: URL(string: lesson.videoURL)!)
-        handleDownloadStatus(.downloading)
-    }
-    
-    @objc func cancelDownload() {
-        downloadTask?.cancel  { resumeDataOrNil in
-            guard let resumeData = resumeDataOrNil else {
-                DispatchQueue.main.async {
-                    self.handleDownloadStatus(.initial)
-                     print("LOG: resumeData is nil in cancel")
-                }
-
-              return
-            }
-            self.resumeData = resumeData
-        }
-        handleDownloadStatus(.canceled)
-    }
-
-    @objc func resumeDownload() {
-        guard let resumeData = resumeData else {
-            DispatchQueue.main.async {
-                print("LOG: resumeData is nil")
-                self.handleDownloadStatus(.initial)
-            }
-            return
-        }
-
-        let downloadTask = URLSession.shared.downloadTask(withResumeData: resumeData)
-        downloadTask.resume()
-        self.downloadTask = downloadTask
-        handleDownloadStatus(.downloading)
-    }
-    
-    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
-        if keyPath == "status", let player = object as? AVPlayer, player.status == .readyToPlay {
-            switch  player.status {
-            case .readyToPlay:
-                activityIndicator.stopAnimating()
-                player.play()
-            default:
-                print("LOG: something went wrong")
-            }
-        }
     }
     
     private func addConstraints() {
@@ -232,7 +201,7 @@ class LessonDetailsViewController: UIViewController {
             videoPlayer.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant:  -20),
             videoPlayer.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             videoPlayer.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            
+
             progressView.topAnchor.constraint(equalTo: videoPlayer.view.bottomAnchor, constant: 16),
             progressView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             progressView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
@@ -248,59 +217,5 @@ class LessonDetailsViewController: UIViewController {
             nextButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 16),
             nextButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
         ])
-    }
-    
-    func downloadVideo(from url: URL) {
-        handleDownloadStatus(.downloading)
-        downloadTask = URLSession.shared.downloadTask(with: url) {
-            urlOrNil, responseOrNil, errorOrNil in
-            if errorOrNil != nil {
-                DispatchQueue.main.async {
-                    self.handleDownloadStatus(.initial)
-                }
-            }
-            
-            guard let fileURL = urlOrNil else { return }
-            do {
-                let documentsURL = try
-                FileManager.default.url(for: .documentDirectory,
-                                        in: .userDomainMask,
-                                        appropriateFor: nil,
-                                        create: false)
-                let savedURL = documentsURL.appendingPathComponent(
-                    url.lastPathComponent
-                )
-                print("LOG: savedURL \(savedURL)")
-                
-                try FileManager.default.moveItem(at: fileURL, to: savedURL)
-                DispatchQueue.main.async {
-                    self.playVideo(with: savedURL)
-                }
-                
-            } catch {
-                print ("file error: \(error)")
-            }
-        }
-
-        downloadTask?.resume()
-    }
-
-    func trackDownload() {
-        observation = downloadTask?.progress.observe(\.fractionCompleted) { progress, _ in
-            DispatchQueue.main.async {
-                self.progressView.isHidden = false
-                self.progressView.progress = Float(progress.fractionCompleted)
-
-                if self.progressView.progress == 1 {
-                    self.handleDownloadStatus(.downloaded)
-                }
-            }
-            print("downloadVideo progress: ", progress.fractionCompleted)
-        }
-    }
-    
-    func playVideo(with url: URL) {
-        let player = AVPlayer(url: url)
-        self.videoPlayer.player = player
     }
 }

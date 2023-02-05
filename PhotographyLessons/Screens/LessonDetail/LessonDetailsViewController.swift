@@ -11,12 +11,6 @@ import Combine
 
 class LessonDetailsViewController: UIViewController {
 
-    private lazy var videoPreviewLayer: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-    
     private lazy var progressView: UIProgressView = {
         let view = UIProgressView()
         view.translatesAutoresizingMaskIntoConstraints = false
@@ -178,10 +172,9 @@ class LessonDetailsViewController: UIViewController {
     }
 
     private func addSubviews() {
-        [videoPreviewLayer, titleLabel, descriptionLabel, nextButton, progressView]
+        [titleLabel, descriptionLabel, nextButton, progressView]
             .forEach(view.addSubview)
 
-        self.videoPlayer.view.frame = self.videoPreviewLayer.frame
         self.addChild(self.videoPlayer)
         self.view.addSubview(self.videoPlayer.view)
         
@@ -190,11 +183,6 @@ class LessonDetailsViewController: UIViewController {
     
     private func addConstraints() {
         NSLayoutConstraint.activate([
-            videoPreviewLayer.heightAnchor.constraint(equalToConstant: 250),
-            videoPreviewLayer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant:  -20),
-            videoPreviewLayer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            videoPreviewLayer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            
             videoPlayer.view.heightAnchor.constraint(equalToConstant: 250),
             videoPlayer.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant:  -20),
             videoPlayer.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
